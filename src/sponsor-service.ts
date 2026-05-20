@@ -2,7 +2,7 @@ import type { Server } from 'node:http';
 import { fileURLToPath } from 'node:url';
 import express from 'express';
 import {
-  PreBinding,
+  Binding,
   Proof,
   SignatureEnabled,
   Transaction,
@@ -48,27 +48,28 @@ export async function startSponsorService(port = SPONSOR_SERVICE_PORT): Promise<
         return;
       }
 
-      // Deserialize in the PreBinding state (proven, not yet bound).
-      const unboundTx = Transaction.deserialize<SignatureEnabled, Proof, PreBinding>(
+      // The user already proved, signed, and bound their portion: deserialize the
+      // finalized (Binding) transaction. The sponsor can only add fees to it.
+      const finalizedUserTx = Transaction.deserialize<SignatureEnabled, Proof, Binding>(
         'signature',
         'proof',
-        'pre-binding',
+        'binding',
         fromHex(tx),
       );
 
-      logger.info('balancing DUST side of unbound tx…');
-      const recipe = await sponsor.wallet.balanceUnboundTransaction(
-        unboundTx,
+      logger.info('adding DUST fees to the finalized tx…');
+      const recipe = await sponsor.wallet.balanceFinalizedTransaction(
+        finalizedUserTx,
         { shieldedSecretKeys: sponsor.zswapSecretKeys, dustSecretKey: sponsor.dustSecretKey },
         { ttl: ttl(), tokenKindsToBalance: ['dust'] },
       );
 
-      logger.info('signing sponsor additions…');
+      logger.info('signing sponsor fee additions…');
       const signed = await sponsor.wallet.signRecipe(recipe, (payload) =>
         sponsor.unshieldedKeystore.signData(payload),
       );
 
-      logger.info('finalizing (binding)…');
+      logger.info('finalizing…');
       const finalized = await sponsor.wallet.finalizeRecipe(signed);
 
       logger.info('submitting…');

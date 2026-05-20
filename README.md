@@ -15,20 +15,23 @@ a prover-controlled witness and must not be trusted as an authenticated caller.)
 ## How it works
 
 ```
-                 user wallet (0 DUST)                         sponsor wallet (has DUST)
-  ┌──────────────────────────────────────┐        ┌────────────────────────────────────┐
-  │ createUnprovenCallTx(register / act)  │        │ POST /sponsor { tx }                 │
-  │   → unprovenTx (proves it knows the   │        │ Transaction.deserialize(pre-binding) │
-  │      secret behind `authority`)       │        │ balanceUnboundTransaction(['dust'])  │
-  │ proofProvider.proveTx(unprovenTx)     │  hex   │ signRecipe(sponsor sig)              │
-  │   → UnboundTransaction (PreBinding) ──┼───────▶│ finalizeRecipe()  (binds)            │
-  │                                       │        │ submitTransaction()  → txHash        │
-  └──────────────────────────────────────┘        └────────────────────────────────────┘
+                 user wallet (0 DUST)                          sponsor wallet (has DUST)
+  ┌────────────────────────────────────────┐        ┌──────────────────────────────────────┐
+  │ createUnprovenCallTx(register / act)    │        │ POST /sponsor { tx }                   │
+  │ proofProvider.proveTx(...)              │        │ Transaction.deserialize(binding)       │
+  │ balanceUnboundTransaction(              │        │ balanceFinalizedTransaction(['dust'])  │
+  │   ['shielded','unshielded'])            │  hex   │ signRecipe(sponsor sig)                │
+  │ signRecipe(user sig)                    │        │ finalizeRecipe()                       │
+  │ finalizeRecipe()  → FinalizedTx ────────┼───────▶│ submitTransaction()  → txHash          │
+  └────────────────────────────────────────┘        └──────────────────────────────────────┘
 ```
 
 The user is always the prover, so the sponsor never sees the user's private state (its
-secret). The handoff happens in the `PreBinding` state (proven, not yet bound) — the
-wallet engine only allows balancing a transaction that has not yet been bound.
+secret). The user **balances its own side, signs, and finalizes (binds) first**, then
+hands over a `FinalizedTransaction`. The sponsor can only *add* a DUST fee offer
+(`balanceFinalizedTransaction(['dust'])`) — it cannot alter the user's bound contents.
+This is the order used by the official
+[midnight-wallet dust-sponsorship snippet](https://github.com/midnightntwrk/midnight-wallet/blob/main/packages/docs-snippets/src/snippets/dust-sponsorship.ts).
 
 ## Prerequisites
 

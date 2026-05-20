@@ -2,11 +2,13 @@ import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { createUnprovenCallTx } from '@midnight-ntwrk/midnight-js-contracts';
 import { toHex } from '@midnight-ntwrk/midnight-js-utils';
+import type { MidnightWalletProvider } from '@midnight-ntwrk/testkit-js';
 import {
   DEPLOYED_CONTRACT_FILE,
   env,
   PRIVATE_STATE_ID,
   SPONSOR_SERVICE_URL,
+  ttl,
   USER_SECRET,
   USER_SEED,
 } from './common/config.js';
@@ -33,10 +35,13 @@ export function readContractAddress(): string {
 const isZero = (b: Uint8Array) => b.every((x) => x === 0);
 
 /**
- * Build + prove one circuit call (no DUST inputs) and hand the proven-but-unbound
- * (PreBinding) transaction to the sponsor, which balances DUST and submits it.
+ * Build + prove one circuit call, then balance the user's OWN side (never DUST), sign,
+ * and finalize — binding the user's portion before handoff. The sponsor receives a
+ * sealed FinalizedTransaction and can only add fees, never tamper with its contents.
+ * (This is the documented order; see the midnight-wallet dust-sponsorship snippet.)
  */
 export async function sponsoredCall(
+  user: MidnightWalletProvider,
   providers: Providers,
   contractAddress: string,
   circuitId: CircuitId,
@@ -49,8 +54,18 @@ export async function sponsoredCall(
     privateStateId: PRIVATE_STATE_ID,
   });
   const unboundTx = await providers.proofProvider.proveTx(unsubmitted.private.unprovenTx);
-  const hex = toHex(unboundTx.serialize());
 
+  // User balances its own shielded/unshielded side (NOT dust), signs, and finalizes.
+  const recipe = await user.wallet.balanceUnboundTransaction(
+    unboundTx,
+    { shieldedSecretKeys: user.zswapSecretKeys, dustSecretKey: user.dustSecretKey },
+    { ttl: ttl(), tokenKindsToBalance: ['shielded', 'unshielded'] },
+  );
+  const signed = await user.wallet.signRecipe(recipe, (p) => user.unshieldedKeystore.signData(p));
+  const finalizedTx = await user.wallet.finalizeRecipe(signed);
+  const hex = toHex(finalizedTx.serialize());
+
+  logger.info(`finalized ${circuitId}() tx; sending to sponsor for fees…`);
   const res = await fetch(`${SPONSOR_SERVICE_URL}/sponsor`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -96,10 +111,10 @@ export async function runUser(contractAddress: string): Promise<UserRunResult> {
     const { dust: userDustBefore } = await getBalances(user);
     logger.info(`user DUST before: ${userDustBefore} (expected 0)`);
 
-    const registerTxHash = await sponsoredCall(providers, contractAddress, 'register');
+    const registerTxHash = await sponsoredCall(user, providers, contractAddress, 'register');
     // act() proves against the on-chain authority, so wait until register is indexed.
     await waitForAuthority(providers, contractAddress);
-    const actTxHash = await sponsoredCall(providers, contractAddress, 'act');
+    const actTxHash = await sponsoredCall(user, providers, contractAddress, 'act');
 
     return { registerTxHash, actTxHash, userDustBefore };
   } finally {
