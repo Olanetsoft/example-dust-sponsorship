@@ -1,0 +1,32 @@
+pragma language_version >= 0.23;
+
+import CompactStandardLibrary;
+
+// Public identity registered as the authority, set once via register().
+export ledger authority: Bytes<32>;
+// Number of successful authorized actions — observable evidence the call ran.
+export ledger actions: Counter;
+
+// The caller's secret, supplied off-chain by the prover's wallet (private state).
+// Witness values are prover-controlled and untrusted, so they are only ever used
+// behind an assert that binds them to the public authority.
+witness secretKey(): Bytes<32>;
+
+// Derive a public identity from a secret, with domain separation.
+// Exported (pure) so the expected authority can be computed off-chain.
+export pure circuit publicId(sk: Bytes<32>): Bytes<32> {
+  return persistentHash<Vector<2, Bytes<32>>>([pad(32, "authorized-action:pk"), sk]);
+}
+
+// One-time registration: record the caller's public identity as the authority.
+export circuit register(): [] {
+  assert(authority == default<Bytes<32>>, "already registered");
+  authority = disclose(publicId(secretKey()));
+}
+
+// Authorized action: only a caller who knows the secret behind `authority` succeeds.
+// The sponsor pays the fee but cannot run this — it does not know the secret.
+export circuit act(): [] {
+  assert(disclose(publicId(secretKey())) == authority, "not authorized");
+  actions.increment(1);
+}

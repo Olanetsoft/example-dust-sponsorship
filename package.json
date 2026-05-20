@@ -1,0 +1,62 @@
+{
+  "name": "midnight-dust-sponsorship-poc",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Example: one wallet (sponsor) pays DUST transaction fees for another wallet (user) on Midnight.",
+  "license": "Apache-2.0",
+  "author": "Olanetsoft",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "build:contract": "compact compile contracts/authorized-action.compact src/managed/authorized-action",
+    "deploy": "tsx src/deploy.ts",
+    "fund": "tsx src/fund-wallets.ts",
+    "sponsor": "tsx src/sponsor-service.ts",
+    "user": "tsx src/user-client.ts",
+    "verify": "tsx src/verify.ts",
+    "e2e": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@midnight-ntwrk/compact-runtime": "0.16.0",
+    "@midnight-ntwrk/ledger-v8": "8.0.3",
+    "@midnight-ntwrk/midnight-js-contracts": "4.0.4",
+    "@midnight-ntwrk/midnight-js-http-client-proof-provider": "4.0.4",
+    "@midnight-ntwrk/midnight-js-indexer-public-data-provider": "4.0.4",
+    "@midnight-ntwrk/midnight-js-level-private-state-provider": "4.0.4",
+    "@midnight-ntwrk/midnight-js-network-id": "4.0.4",
+    "@midnight-ntwrk/midnight-js-node-zk-config-provider": "4.0.4",
+    "@midnight-ntwrk/midnight-js-types": "4.0.4",
+    "@midnight-ntwrk/midnight-js-utils": "4.0.4",
+    "@midnight-ntwrk/testkit-js": "4.0.4",
+    "@midnight-ntwrk/wallet-sdk-abstractions": "2.0.0",
+    "@midnight-ntwrk/wallet-sdk-address-format": "3.1.0",
+    "@midnight-ntwrk/wallet-sdk-dust-wallet": "3.0.0",
+    "@midnight-ntwrk/wallet-sdk-facade": "3.0.0",
+    "@midnight-ntwrk/wallet-sdk-hd": "3.0.1",
+    "@midnight-ntwrk/wallet-sdk-shielded": "2.1.0",
+    "@midnight-ntwrk/wallet-sdk-unshielded-wallet": "2.1.0",
+    "@scure/bip39": "^1.6.0",
+    "axios": "^1.16.1",
+    "express": "^4.21.2",
+    "pino": "^9.5.0",
+    "pino-pretty": "^13.0.0",
+    "rxjs": "^7.8.1",
+    "testcontainers": "^11.14.0",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^22.10.0",
+    "@types/ws": "^8.5.13",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  },
+  "resolutions": {
+    "@midnight-ntwrk/ledger-v8": "8.0.3",
+    "@midnight-ntwrk/midnight-js-network-id": "4.0.4"
+  }
+}

@@ -1,0 +1,11 @@
+import pino, { type Logger } from 'pino';
+
+export function createLogger(name: string): Logger {
+  return pino({
+    level: process.env.LOG_LEVEL ?? 'info',
+    transport: {
+      target: 'pino-pretty',
+      options: { colorize: true, translateTime: 'HH:MM:ss', ignore: 'pid,hostname', messageFormat: `[${name}] {msg}` },
+    },
+  });
+}
