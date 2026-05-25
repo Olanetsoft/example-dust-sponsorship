@@ -1,5 +1,7 @@
 # Midnight DUST Sponsorship Example
 
+> Attribution: This project is built on the Midnight Network.
+
 A working example of **fee sponsorship** on Midnight: one wallet (the **sponsor**) pays
 the DUST transaction fees for another wallet (the **user**) that holds zero DUST. A
 contract call from the user's identity lands on-chain, with fees paid by the sponsor.
