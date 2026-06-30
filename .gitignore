@@ -20,3 +20,4 @@ accounts.json
 
 # Local editor / plugin tooling
 .midnight-expert/
+.claude/

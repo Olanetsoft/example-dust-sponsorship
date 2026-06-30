@@ -4,7 +4,7 @@ import { WebSocket } from 'ws';
 // @ts-expect-error - assigning the ws implementation to the global
 globalThis.WebSocket = WebSocket;
 
-import * as ledger from '@midnight-ntwrk/ledger-v8';
+import * as ledger from '@midnight-ntwrk/midnight-js-protocol/ledger';
 import {
   FluentWalletBuilder,
   MidnightWalletProvider,

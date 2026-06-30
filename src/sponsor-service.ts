@@ -6,7 +6,7 @@ import {
   Proof,
   SignatureEnabled,
   Transaction,
-} from '@midnight-ntwrk/ledger-v8';
+} from '@midnight-ntwrk/midnight-js-protocol/ledger';
 import { fromHex } from '@midnight-ntwrk/midnight-js-utils';
 import { env, SPONSOR_SEED, SPONSOR_SERVICE_PORT, ttl } from './common/config.js';
 import { createLogger } from './common/logger.js';
