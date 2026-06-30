@@ -10,28 +10,42 @@ Crucially, it shows that sponsorship separates **who pays** from **who is author
 The contract authorizes a caller by proving knowledge of a secret
 (`assert(publicId(secret) == authority)`). The user proves this and runs the action; the
 sponsor pays the fee but **cannot** perform the action, because it does not know the
-secret. (This avoids `ownPublicKey()` for authorization — the
+secret. (This avoids `ownPublicKey()` for authorization; the
 [security docs](https://docs.midnight.network/compact/smart-contract-security) warn it is
 a prover-controlled witness and must not be trusted as an authenticated caller.)
 
 ## How it works
 
-```
-                 user wallet (0 DUST)                          sponsor wallet (has DUST)
-  ┌────────────────────────────────────────┐        ┌──────────────────────────────────────┐
-  │ createUnprovenCallTx(register / act)    │        │ POST /sponsor { tx }                   │
-  │ proofProvider.proveTx(...)              │        │ Transaction.deserialize(binding)       │
-  │ balanceUnboundTransaction(              │        │ balanceFinalizedTransaction(['dust'])  │
-  │   ['shielded','unshielded'])            │  hex   │ signRecipe(sponsor sig)                │
-  │ signRecipe(user sig)                    │        │ finalizeRecipe()                       │
-  │ finalizeRecipe()  → FinalizedTx ────────┼───────▶│ submitTransaction()  → txHash          │
-  └────────────────────────────────────────┘        └──────────────────────────────────────┘
+```mermaid
+flowchart LR
+    subgraph U["User wallet (0 DUST)"]
+        direction TB
+        U1["createUnprovenCallTx(register / act)"]
+        U2["proofProvider.proveTx(...)"]
+        U3["balanceUnboundTransaction(['shielded','unshielded'])"]
+        U4["signRecipe(user sig)"]
+        U5["finalizeRecipe() → FinalizedTransaction"]
+        U1 --> U2 --> U3 --> U4 --> U5
+    end
+
+    subgraph S["Sponsor wallet (has DUST)"]
+        direction TB
+        S1["POST /sponsor (tx)"]
+        S2["Transaction.deserialize(binding)"]
+        S3["balanceFinalizedTransaction(['dust'])"]
+        S4["signRecipe(sponsor sig)"]
+        S5["finalizeRecipe()"]
+        S6["submitTransaction() → txHash"]
+        S1 --> S2 --> S3 --> S4 --> S5 --> S6
+    end
+
+    U5 -- "hex (FinalizedTransaction)" --> S1
 ```
 
 The user is always the prover, so the sponsor never sees the user's private state (its
 secret). The user **balances its own side, signs, and finalizes (binds) first**, then
 hands over a `FinalizedTransaction`. The sponsor can only *add* a DUST fee offer
-(`balanceFinalizedTransaction(['dust'])`) — it cannot alter the user's bound contents.
+(`balanceFinalizedTransaction(['dust'])`); it cannot alter the user's bound contents.
 This is the order used by the official
 [midnight-wallet dust-sponsorship snippet](https://github.com/midnightntwrk/midnight-wallet/blob/main/packages/docs-snippets/src/snippets/dust-sponsorship.ts).
 
@@ -48,8 +62,13 @@ Start the devnet:
 
 ```bash
 git clone https://github.com/midnightntwrk/midnight-local-dev
-cd midnight-local-dev && npm install
-docker compose -f standalone.yml up -d
+
+# Installation
+cd midnight-local-dev
+npm install
+
+# Quick Start
+npm start
 ```
 
 ## Setup
